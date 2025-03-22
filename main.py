@@ -4,9 +4,16 @@ import requests
 import numpy as np
 import tensorflow as tf
 import os
-#import joblib
+from fastapi.middleware.cors import CORSMiddleware
 
 app = FastAPI()
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # Puedes cambiar "*" por ["http://localhost:8080"] si deseas limitarlo
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 # API KEYS
 API_LLUVIA = "a1aaac909741453c8c1145326212101"
