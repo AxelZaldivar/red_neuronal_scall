@@ -5,6 +5,7 @@ import numpy as np
 import tensorflow as tf
 import os
 from fastapi.middleware.cors import CORSMiddleware
+import datetime
 
 app = FastAPI()
 app.add_middleware(
@@ -28,7 +29,7 @@ if not os.path.exists(MODEL_PATH):
     from keras.src.callbacks import EarlyStopping
 
     num_simulaciones = 1000
-    max_dias_sin_lluvia = 10
+    max_dias_sin_lluvia = 9
     max_imeca = 500
     dias_sequia, imeca_values, humedad_values, viento_values, porcentaje_tiro = [], [], [], [], []
 
@@ -89,8 +90,7 @@ def predecir_porcentaje_tiro(ciudad: str = Query(...)):
     else:
         imeca_actual = 100
 
-    dias_sin_lluvia = 10  # puedes cambiar esto por una lógica más avanzada
-
+    dias_sin_lluvia = dias_sin_lluvia_funcion(ciudad)
     X_pred = np.array([[dias_sin_lluvia, imeca_actual, humedad, viento]])
     resultado = modelo.predict(X_pred)[0][0]
     return {
@@ -102,3 +102,31 @@ def predecir_porcentaje_tiro(ciudad: str = Query(...)):
         "lluvia_mm": lluvia_mm,
         "porcentaje_tiro": round(float(resultado), 2)
     }
+
+def dias_sin_lluvia_funcion(ciudad):
+    print("Ejecutando la función dias_sin_lluvia_funcion...")
+    hoy = datetime.date.today()
+    dias_sin_lluvia = 0
+
+    for i in range(9):  # 9 días hacia atrás
+        fecha = hoy - datetime.timedelta(days=i)
+        url = f"http://api.weatherapi.com/v1/history.json?key={API_LLUVIA}&q={ciudad}&dt={fecha}"
+        response = requests.get(url)
+        
+        # Verifica si la API devolvió datos válidos
+        if response.status_code == 200:
+            data = response.json()
+            
+            if "forecast" in data and "forecastday" in data["forecast"]:
+                precip = data["forecast"]["forecastday"][0]["day"]["totalprecip_mm"] 
+                print(f"Fecha: {fecha} - Precipitación: {precip} mm")
+
+                if precip > 0:
+                    break  # Se encontró lluvia, salir del bucle
+                dias_sin_lluvia += 1  # Solo se incrementa si no hubo lluvia
+            else:
+                print(f"No se encontraron datos para {fecha}")
+        else:
+            print(f"Error al obtener datos para {fecha}")
+
+    return dias_sin_lluvia
