@@ -75,11 +75,12 @@ def predecir_porcentaje_tiro(ciudad: str = Query(...)):
         return {"error": "No se pudo obtener el clima"}
 
     datos_clima = respuesta_clima.json()
+    city = datos_clima['location']['name'] + ", " + datos_clima['location']['region'] + ", " + datos_clima['location']['country']
+    lat = datos_clima['location']['lat']
+    lon = datos_clima['location']['lon']
     lluvia_mm = datos_clima['forecast']['forecastday'][0]['day'].get('totalprecip_mm', 0)
     humedad = datos_clima['forecast']['forecastday'][0]['day'].get('avghumidity', 50)
     viento = datos_clima['forecast']['forecastday'][0]['day'].get('maxwind_kph', 10)
-    lat = datos_clima['location']['lat']
-    lon = datos_clima['location']['lon']
 
     # Obtener IMECA
     url_imeca = f"http://api.openweathermap.org/data/2.5/air_pollution?lat={lat}&lon={lon}&appid={API_IMECA}"
@@ -94,7 +95,7 @@ def predecir_porcentaje_tiro(ciudad: str = Query(...)):
     X_pred = np.array([[dias_sin_lluvia, imeca_actual, humedad, viento]])
     resultado = modelo.predict(X_pred)[0][0]
     return {
-        "ciudad": ciudad,
+        "ciudad": city,
         "dias_sin_lluvia": dias_sin_lluvia,
         "imeca": imeca_actual,
         "humedad": humedad,
